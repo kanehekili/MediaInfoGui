@@ -1,0 +1,12 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Exec=python3 /usr/local/bin/MediaInfoGui/MediaInfoGui.py gtk3 %f
+Name=Media Info GTK3
+Comment=Downloads video and audio
+Icon=/usr/local/bin/MediaInfoGui/mediainfo.png
+NoDisplay=false
+Categories=GTK3;AudioVideo;Utility;
+MimeType=video/mp4;audio/mpeg;video/mp2t;video/mpeg;video/x-matroska;video/x-msvideo;video/webm;image/jpeg;audio/mp4;audio/mp3;image/png;audio/flac;audio/x-wav;audio/x-opus+ogg;

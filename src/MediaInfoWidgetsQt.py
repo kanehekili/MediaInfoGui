@@ -7,7 +7,7 @@ Created on May 01 2020
 import sys
 import re
 import os
-from PyQt5 import QtGui,QtWidgets
+from PyQt5 import QtGui,QtWidgets,QtCore
 from PyQt5.QtWidgets import QApplication, QErrorMessage
 from PyQt5.Qt import QMainWindow, QSizePolicy, QFont
 
@@ -37,7 +37,6 @@ class MediaInfoView(QMainWindow):
         
         buttonHBox = QtWidgets.QHBoxLayout();
         mainVBox = QtWidgets.QVBoxLayout();
-        #1fullVBox = QtWidgets.QVBoxLayout();
         
         buttonHBox.addWidget(buttonBox)
         
@@ -68,20 +67,22 @@ class MediaInfoView(QMainWindow):
     ##create a text view 
     def createListWidget(self):
         table = QtWidgets.QTableWidget()
+        font = QFont()
+        font.setPointSize(font.pointSize()-1)
+        table.setFont(font)
         table.setColumnCount(2)
+        table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded);
         table.setHorizontalHeaderLabels(["Item","Data"])
         header= table.horizontalHeader()
-        header.setSectionResizeMode(0,QtWidgets.QHeaderView.Stretch)
-        header.setSectionResizeMode(1,QtWidgets.QHeaderView.Stretch)
+        #ok, with gap header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        # works, but initially too small: header.setSectionResizeMode(0,QtWidgets.QHeaderView.Stretch)
+        #ok, but then no scrollbar: header.setStretchLastSection(True)
         table.verticalHeader().setVisible(False)
-        #vertHeader =table.verticalHeader() 
-        #vertHeader.setSectionResizeMode(QHeaderView.Fixed)
-        #vertHeader.setDefaultSectionSize(vertHeader.minimumSectionSize())
+        table.verticalHeader().setStretchLastSection(True)
         table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
         table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        #table.setFocusPolicy(QtCore.Qt.NoFocus)
         table.setAlternatingRowColors(True)
-        
         return table
        
 
