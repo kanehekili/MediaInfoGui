@@ -64,7 +64,12 @@ class MediaInfoView(Gtk.ApplicationWindow):
         self.store = Gtk.ListStore(str, str)
         self.treeView = Gtk.TreeView(model=self.store)
         self.treeView.set_grid_lines(Gtk.TreeViewGridLines.BOTH)
-        self.treeView.get_selection().set_mode(Gtk.SelectionMode.NONE)
+        # every field (row) can be selected - Ctrl+C copies it (see _on_key_pressed)
+        self.treeView.get_selection().set_mode(Gtk.SelectionMode.SINGLE)
+        # GTK4 has no key-press-event signal - use a key event controller
+        keyCtrl = Gtk.EventControllerKey()
+        keyCtrl.connect("key-pressed", self._on_key_pressed)
+        self.treeView.add_controller(keyCtrl)
         self._addColumn("Item", 0)
         self._addColumn("Data", 1)
         sw = Gtk.ScrolledWindow()
@@ -94,6 +99,21 @@ class MediaInfoView(Gtk.ApplicationWindow):
     def fillTable(self, rows):
         for row in rows:
             self.store.append(row)
+
+    # Ctrl+C copies the selected field in the same format as the Clip button
+    def _on_key_pressed(self, controller, keyval, keycode, state):
+        if state & Gdk.ModifierType.CONTROL_MASK and keyval in (Gdk.KEY_c, Gdk.KEY_C):
+            model, tree_paths = self.treeView.get_selection().get_selected_rows()
+            if tree_paths:
+                iters = [model.get_iter(p) for p in tree_paths]
+                rows = [(model.get_value(it, 0), model.get_value(it, 1)) for it in iters]
+                provider = Gdk.ContentProvider.new_for_bytes(
+                    "text/plain;charset=utf-8",
+                    GLib.Bytes.new(formatForClipboard(rows).encode("utf-8"))
+                )
+                self.get_clipboard().set_content(provider)
+            return True
+        return False
 
     def _on_clip(self, widget):
         text = formatForClipboard([(r[0], r[1]) for r in self.store])

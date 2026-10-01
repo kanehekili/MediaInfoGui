@@ -125,6 +125,76 @@ def _insertAfterGeneral(lines, extraLines):
     return lines + [b""] + extraLines
 
 
+def _fieldInSection(lines, section, key):
+    """Return the first value of `key` found in the `section` block of a
+    mediainfo text output (list of bytes lines), or None."""
+    in_section = False
+    for line in lines:
+        row = line.decode("utf-8", errors="replace").strip()
+        if not row:
+            continue
+        tokens = re.split('[ ]+:[ ]+', row, maxsplit=1)
+        if len(tokens) == 1:
+            # section header line
+            in_section = (tokens[0] == section)
+            continue
+        if in_section and tokens[0].strip() == key:
+            return tokens[1].strip()
+    return None
+
+
+def buildHighlightLines(lines):
+    """Build a 'Highlight' section with the essential values for a quick
+    overview. Inserted on top of the mediainfo output."""
+    entries = []
+
+    name = _fieldInSection(lines, "General", "Complete name")
+    if name:
+        entries.append(("Complete name", name))
+
+    dimension = _fieldInSection(lines, "Video", "Dimension")
+    if not dimension:
+        width = _fieldInSection(lines, "Video", "Width")
+        height = _fieldInSection(lines, "Video", "Height")
+        if width and height:
+            w = re.sub(r"[^0-9.]", "", width)
+            h = re.sub(r"[^0-9.]", "", height)
+            if w and h:
+                dimension = f"{w} x {h}"
+    if dimension:
+        entries.append(("Dimension", dimension))
+
+    aspect = (_fieldInSection(lines, "Video", "Display aspect ratio")
+              or _fieldInSection(lines, "Video", "Stored aspect ratio"))
+    if aspect:
+        entries.append(("Aspect ratio", aspect))
+
+    duration = _fieldInSection(lines, "General", "Duration")
+    if duration:
+        entries.append(("Duration", duration))
+
+    audioFormat = _fieldInSection(lines, "Audio", "Format")
+    if audioFormat:
+        entries.append(("Audio Format", audioFormat))
+
+    frameRate = _fieldInSection(lines, "Video", "Frame rate")
+    if frameRate:
+        entries.append(("Frame rate", frameRate))
+
+    fileSize = _fieldInSection(lines, "General", "File size")
+    if fileSize:
+        entries.append(("File size", fileSize))
+
+    if not entries:
+        return []
+
+    result = [b"Highlight"]
+    for key, value in entries:
+        result.append(f"{key:<40} : {value}".encode("utf-8"))
+    result.append(b"")
+    return result
+
+
 NO_FILE_TEXT = "- no file selected -"
 INVALID_FILE_TEXT = "- no media info available -"
 NO_TOOL_TEXT = "- mediainfo not installed -"
@@ -146,6 +216,9 @@ def readMediaInfo(type,filename):
                 tsLines = _getTSProgramLines(filename)
                 if tsLines:
                     lines = _insertAfterGeneral(lines, tsLines)
+            hlLines = buildHighlightLines(lines)
+            if hlLines:
+                lines = hlLines + lines
 
     if not lines:
         #no (usable) file given - show an empty list instead of an error dialog

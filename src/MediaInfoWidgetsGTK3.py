@@ -74,7 +74,9 @@ class MediaInfoView:
         self.treeView = Gtk.TreeView(model=self.createTreeStore())
         self.treeView.set_grid_lines(Gtk.TreeViewGridLines.BOTH)
         sel = self.treeView.get_selection()
-        sel.set_mode(Gtk.SelectionMode.NONE)
+        # every field (row) can be selected - Ctrl+C copies it (see _on_key_press)
+        sel.set_mode(Gtk.SelectionMode.SINGLE)
+        self.treeView.connect("key-press-event", self._on_key_press)
         
         #fontName="Monospace 9"
         fontName=""
@@ -125,6 +127,19 @@ class MediaInfoView:
         return 0;
     
     
+    # Ctrl+C copies the selected field in the same format as the Clip button
+    def _on_key_press(self, widget, event):
+        if event.state & Gdk.ModifierType.CONTROL_MASK and event.keyval in (Gdk.KEY_c, Gdk.KEY_C):
+            model, tree_paths = self.treeView.get_selection().get_selected_rows()
+            if tree_paths:
+                iters = [model.get_iter(p) for p in tree_paths]
+                rows = [(model.get_value(it, 0), model.get_value(it, 1)) for it in iters]
+                clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+                clipboard.set_text(formatForClipboard(rows), -1)
+                clipboard.store()
+            return True
+        return False
+
     #  ------------ Callback section -----------------
     def callback_copy(self, widget, data=None):
         clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
