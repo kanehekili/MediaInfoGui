@@ -37,8 +37,8 @@ def makeTar = { File tarFile, String arcName, File sourceDir ->
     }
 }
 
-def computeMD5(File f) {
-    def md = MessageDigest.getInstance("MD5")
+def computeSHA256(File f) {
+    def md = MessageDigest.getInstance("SHA-256")
     f.eachByte(65536) { bytes, len -> md.update(bytes, 0, len) }
     md.digest().encodeHex().toString()
 }
@@ -46,7 +46,7 @@ def computeMD5(File f) {
 // "pkg-a, pkg-b: desc" → "'pkg-a' 'pkg-b: desc'"  (PKGBUILD array format)
 def archPkgFmt(String s) { s.split(',').collect { "'${it.trim()}'" }.join(' ') }
 
-def makeSrcInfo(String pkgver, String pkgrel, String md5, String deps, String optDeps) {
+def makeSrcInfo(String pkgver, String pkgrel, String sha256, String deps, String optDeps) {
     def depLines    = deps.split(',').collect    { "\tdepends = ${it.trim()}" }.join("\n")
     def optDepLines = optDeps.split(',').collect { "\toptdepends = ${it.trim()}" }.join("\n")
 """\
@@ -61,7 +61,7 @@ pkgbase = mediainfogui
 ${depLines}
 ${optDepLines}
 \tsource = https://github.com/kanehekili/MediaInfoGui/releases/download/${pkgver}/MediaInfoGui${pkgver}.tar
-\tmd5sums = ${md5}
+\tsha256sums = ${sha256}
 
 pkgname = mediainfogui
 """
@@ -184,18 +184,30 @@ tasks.register("upload_pypi") {
 
         // inheritIO() would write to the gradle daemon's streams, not the console
         def run = { List<String> cmd ->
+            // "python3 -m twine" is reported as "twine", not as "python3"
+            def tool = (cmd.size() > 2 && cmd[1] == "-m") ? cmd[2] : cmd.first()
+            def output = []
             def proc = new ProcessBuilder(cmd).directory(pypiOut).redirectErrorStream(true).start()
-            proc.inputStream.eachLine { println "  $it" }
+            proc.inputStream.eachLine { output << it; println "  $it" }
             def rc = proc.waitFor()
-            if (rc != 0) throw new GradleException("${cmd.first()} failed with exit code ${rc}")
+            if (rc != 0) {
+                // gradle prints only the exception - repeat the tail of the output there
+                def tail = output.findAll { it.trim() }.takeRight(10)
+                throw new GradleException(
+                    "${tool} failed with exit code ${rc}\n" +
+                    "  command: ${cmd.join(' ')}\n" +
+                    "  workdir: ${pypiOut}\n" +
+                    (tail ? "  last output:\n" + tail.collect { "    $it" }.join("\n")
+                          : "  (no output)"))
+            }
         }
 
         run(["python3", "-m", "build"])
 
         // ProcessBuilder does not expand globs - pass the built files explicitly
         def artifacts = fileTree("${pypiOut}/dist").files*.path.sort()
-        run(["twine", "check", "--strict"] + artifacts)
-        run(["twine", "upload"] + artifacts)
+        run(["python3", "-m", "twine", "check", "--strict"] + artifacts)
+        run(["python3", "-m", "twine", "upload"] + artifacts)
 
         println "  Done: https://pypi.org/project/mediainfogui/${version}/"
     }
@@ -213,8 +225,8 @@ tasks.register("build_aur") {
         def tarFile = file("${outDir}/MediaInfoGui${version}.tar")
         aurOut.mkdirs()
 
-        def md5 = computeMD5(tarFile)
-        println "  AUR source tarball: ${tarFile.name}  md5=${md5}"
+        def sha256 = computeSHA256(tarFile)
+        println "  AUR source tarball: ${tarFile.name}  sha256=${sha256}"
 
         def archCfg = distros['arch']
         copy {
@@ -223,14 +235,14 @@ tasks.register("build_aur") {
             filter(ReplaceTokens, tokens: tok([
                 xxx      : version,
                 xpkgrelx : pkgrelease,
-                md5sum   : md5,
+                sha256sum: sha256,
                 xlibsx   : archPkgFmt(archCfg.libs),
                 xoptlibsx: archPkgFmt(archCfg.optLibs),
             ]))
         }
 
         file("${aurOut}/.SRCINFO").text =
-            makeSrcInfo(version, pkgrelease, md5, archCfg.libs, archCfg.optLibs)
+            makeSrcInfo(version, pkgrelease, sha256, archCfg.libs, archCfg.optLibs)
         println "  .SRCINFO generated"
     }
 }

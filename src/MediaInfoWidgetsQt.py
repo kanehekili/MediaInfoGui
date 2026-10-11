@@ -107,8 +107,23 @@ class MediaInfoView(QMainWindow):
         QApplication.quit()
 
 
+#desktops that are Qt based and theme us without help - same list as VideoCut
+QT_DESKTOPS = ["kde","plasma","lxqtt","trinity desktop","lumina","lomiri","cutefish","ukui","thedesk","razor","deepin","dde"]
+
+
 def main(argv = None):
+    #force xcb: as a native wayland client Qt draws its own client side
+    #decorations, which do not follow the window manager theme. Through xcb the
+    #WM decorates the window and it matches the desktop. Must be set before the
+    #QApplication is created (see VideoCut, OSTools.setGTKEnvironment)
+    if os.environ.get("XDG_CURRENT_DESKTOP","").lower() not in QT_DESKTOPS:
+        os.environ["QT_QPA_PLATFORM"] = "xcb"
+
     app=QApplication(sys.argv)
+    #setWindowIcon only feeds _NET_WM_ICON, which does not exist on wayland -
+    #there the icon comes from the .desktop named by setDesktopFileName
+    app.setApplicationName("MediaInfoGui")
+    app.setDesktopFileName("MediaInfoGui")
     view=MediaInfoView(argv[0])
     view.fillTable(argv[1])
     view.show()

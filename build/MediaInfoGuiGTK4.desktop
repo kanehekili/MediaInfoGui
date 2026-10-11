@@ -7,6 +7,7 @@ Exec=python3 /opt/mediainfogui/MediaInfoGui.py gtk4 %f
 Name=Media Info GTK4
 Comment=Shows media info data
 Icon=/opt/mediainfogui/mediainfo.png
+StartupWMClass=MediaInfoGui
 NoDisplay=false
 Categories=GTK;AudioVideo;Utility;
 MimeType=video/mp4;audio/mpeg;video/mp2t;video/mpeg;video/x-matroska;video/x-msvideo;video/webm;image/jpeg;audio/mp4;audio/mp3;image/png;audio/flac;audio/x-wav;audio/x-opus+ogg;

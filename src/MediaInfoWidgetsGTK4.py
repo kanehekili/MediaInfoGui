@@ -108,6 +108,9 @@ class MediaInfoView(Gtk.ApplicationWindow):
 
 
 def main(argv=None):
+    #GTK4 no longer exports _NET_WM_ICON, so docks and taskbars take the icon
+    #from the .desktop file they match via WM_CLASS - which would be "python3"
+    GLib.set_prgname("MediaInfoGui")
     app = Gtk.Application()
 
     def on_activate(application):

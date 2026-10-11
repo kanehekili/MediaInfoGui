@@ -144,6 +144,9 @@ def main(argv = None):
     if argv is None:
         argv = sys.argv
 
+    #set_icon_from_file only feeds _NET_WM_ICON, which does not exist on
+    #wayland - there the icon comes from the .desktop matched via the app id
+    GLib.set_prgname("MediaInfoGui")
     view=MediaInfoView(argv[0])
     view.fillTable(argv[1])
     view.openView()

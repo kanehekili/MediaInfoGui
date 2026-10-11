@@ -9,7 +9,7 @@ depends=(@xlibsx@)
 optdepends=(@xoptlibsx@)
 arch=('x86_64' 'aarch64')
 source=(https://github.com/kanehekili/MediaInfoGui/releases/download/@xxx@/MediaInfoGui@xxx@.tar)
-md5sums=(@md5sum@)
+sha256sums=(@sha256sum@)
 
 package() {
   cd "${srcdir}/MediaInfoGui"

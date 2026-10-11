@@ -207,7 +207,7 @@ def main(argv = None):
     if type=="":
         type=detectToolkit()
 
-    print("Version:"+VERSION)
+    print("Version:"+VERSION+" UI:"+type)
     readMediaInfo(type,filename)
 
 if __name__ == '__main__':
